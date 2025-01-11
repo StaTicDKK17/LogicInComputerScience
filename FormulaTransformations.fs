@@ -2,35 +2,37 @@ module FormulaTransformations
 
 open PropositionalLogic
 
-let rec impl_free (formula: Formula) : ImplFreeFormula =
+let rec impl_free (formula: Formula) : Formula =
     match formula with
-    | TOP -> ImplFreeFormula.TOP
-    | BOT -> ImplFreeFormula.BOT
-    | ATOM(atom) -> ImplFreeFormula.ATOM atom
-    | NOT(form) -> ImplFreeFormula.NOT (impl_free form)
-    | AND(form1, form2) -> ImplFreeFormula.AND (impl_free form1, impl_free form2)
-    | OR(form1, form2) -> ImplFreeFormula.OR (impl_free form1, impl_free form2)
-    | IMPL(form1, form2) -> ImplFreeFormula.OR (ImplFreeFormula.NOT (impl_free form1), impl_free form2)
+    | TOP -> TOP
+    | BOT -> BOT
+    | ATOM(atom) -> ATOM atom
+    | NOT(form) -> NOT (impl_free form)
+    | AND(form1, form2) -> AND (impl_free form1, impl_free form2)
+    | OR(form1, form2) -> OR (impl_free form1, impl_free form2)
+    | IMPL(form1, form2) -> OR (NOT (impl_free form1), impl_free form2)
 
-and nne (formula: ImplFreeFormula) : NegatedNormalFormFormula =
+and nnf (formula: Formula) : Formula =
     // printfn "%A" formula
     match formula with
-    | ImplFreeFormula.TOP -> NegatedNormalFormFormula.TOP
-    | ImplFreeFormula.BOT -> NegatedNormalFormFormula.BOT
-    | ImplFreeFormula.ATOM(atom) -> NegatedNormalFormFormula.ATOM(atom)
-    | ImplFreeFormula.NOT(form) -> 
+    | TOP -> TOP
+    | BOT -> BOT
+    | ATOM(atom) -> ATOM(atom)
+    | NOT(form) -> 
         match form with
-        | ImplFreeFormula.ATOM(atom) -> NegatedNormalFormFormula.NOT (NegatedNormalFormFormula.ATOM (atom))
-        | ImplFreeFormula.BOT -> NegatedNormalFormFormula.TOP
-        | ImplFreeFormula.TOP -> NegatedNormalFormFormula.BOT
-        | ImplFreeFormula.AND(aForm1, aForm2) -> NegatedNormalFormFormula.OR (nne (ImplFreeFormula.NOT aForm1), nne (ImplFreeFormula.NOT aForm2))
-        | ImplFreeFormula.OR(oForm1, oForm2) -> NegatedNormalFormFormula.AND (nne (ImplFreeFormula.NOT oForm1), nne (ImplFreeFormula.NOT oForm2))
-        | ImplFreeFormula.NOT(form) -> form
-    | ImplFreeFormula.AND(form1, form2) -> NegatedNormalFormFormula.AND (nne form1, nne form2)
-    | ImplFreeFormula.OR(form1, form2) -> NegatedNormalFormFormula.OR (nne form1, nne form2)
+        | ATOM(atom) -> NOT (ATOM (atom))
+        | BOT -> TOP
+        | TOP -> BOT
+        | AND(aForm1, aForm2) -> OR (nnf (NOT aForm1), nnf (NOT aForm2))
+        | OR(oForm1, oForm2) -> AND (nnf (NOT oForm1), nnf (NOT oForm2))
+        | NOT(form) -> form
+        | IMPL(_, _)-> nnf form
+    | AND(form1, form2) -> AND (nnf form1, nnf form2)
+    | OR(form1, form2) -> OR (nnf form1, nnf form2)
+    | IMPL(form1, form2) -> OR (NOT (nnf form1), nnf form2)
 
-and distr (n1: ConjunctiveNormalFormFormula) (n2: ConjunctiveNormalFormFormula) : ConjunctiveNormalFormFormula =
+and distr (n1: Formula) (n2: Formula) : Formula =
     match (n1, n2) with
-    | (ConjunctiveNormalFormFormula.AND (n11, n12), _) -> ConjunctiveNormalFormFormula.AND (distr n11 n2, distr n12 n2)
-    | (_, ConjunctiveNormalFormFormula.AND (n21, n22)) -> ConjunctiveNormalFormFormula.AND (distr n1 n21, distr n1 n22)
-    | _ -> ConjunctiveNormalFormFormula.OR (n1, n2)
+    | (AND (n11, n12), _) -> AND (distr n11 n2, distr n12 n2)
+    | (_, AND (n21, n22)) -> AND (distr n1 n21, distr n1 n22)
+    | _ -> OR (n1, n2)

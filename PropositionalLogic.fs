@@ -13,7 +13,6 @@ type ImplFreeFormula =
     | OR      of ImplFreeFormula * ImplFreeFormula
 
 type NegatedNormalFormFormula = ImplFreeFormula
-
 type ConjunctiveNormalFormFormula = ImplFreeFormula
 
 type Formula = 
